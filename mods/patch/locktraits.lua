@@ -7,10 +7,8 @@
 local mod = {}
 local mod_name = "LockTraits"
 
---, oi = Mods.new_mod("LockTraits")
-
 -- Returns index of object o in table t or nil if t doesn't have o
-table.index_of = function(t, o)
+mod.table_index_of = function(t, o)
 	if type(t) ~= "table" then
 		return nil
 	end
@@ -34,6 +32,9 @@ mod.last_item = nil
 -- Amount of possible trait combinations
 mod.reroll_info = nil
 
+mod.animation_name_fade_in = "vmf_lock_trait_fade_in"
+mod.animation_name_fade_out = "vmf_lock_trait_fade_out"
+
 -- Debug output
 local function print_traits(traits)
 	for i, trait in ipairs(traits) do
@@ -42,34 +43,44 @@ local function print_traits(traits)
 	EchoConsole("=======")
 end
 
--- Safely hook reroll page animations and return reroll page object
-function mod.setup_reroll_page()
+-- Safely get reroll page object
+function mod.get_reroll_page()
 	local page = (
-		Managers.player and
-		Managers.player.network_manager and
-		Managers.player.network_manager.matchmaking_manager and
-		Managers.player.network_manager.matchmaking_manager.matchmaking_ui and
-		Managers.player.network_manager.matchmaking_manager.matchmaking_ui.ingame_ui and
-		Managers.player.network_manager.matchmaking_manager.matchmaking_ui.ingame_ui.views and
-		Managers.player.network_manager.matchmaking_manager.matchmaking_ui.ingame_ui.views.altar_view and
-		Managers.player.network_manager.matchmaking_manager.matchmaking_ui.ingame_ui.views.altar_view.ui_pages and
-		Managers.player.network_manager.matchmaking_manager.matchmaking_ui.ingame_ui.views.altar_view.ui_pages.trait_reroll or
-		nil
+	Managers.player and
+			Managers.player.network_manager and
+			Managers.player.network_manager.matchmaking_manager and
+			Managers.player.network_manager.matchmaking_manager.matchmaking_ui and
+			Managers.player.network_manager.matchmaking_manager.matchmaking_ui.ingame_ui and
+			Managers.player.network_manager.matchmaking_manager.matchmaking_ui.ingame_ui.views and
+			Managers.player.network_manager.matchmaking_manager.matchmaking_ui.ingame_ui.views.altar_view and
+			Managers.player.network_manager.matchmaking_manager.matchmaking_ui.ingame_ui.views.altar_view.ui_pages and
+			Managers.player.network_manager.matchmaking_manager.matchmaking_ui.ingame_ui.views.altar_view.ui_pages.trait_reroll or
+			nil
 	)
 	--EchoConsole(tostring(page))
-	if page then
-		mod.hook_animations()
-	end
 	return page
 end
 
--- Modifies reroll page animations to prevent locked traits from being un-highlighted
-function mod.hook_animations()
-	local path_to_page = "Managers.player.network_manager.matchmaking_manager.matchmaking_ui.ingame_ui.views.altar_view.ui_pages.trait_reroll"
+-- Saves a local pointer to the reroll page
+-- Sets up animations
+function mod.setup_reroll_page()
+	local page = mod.get_reroll_page()
+	if page then
+		mod.trait_reroll_page = page
+		mod.setup_animations()
+	end
+end
 
-	Mods.hook.set(mod_name, path_to_page .. ".ui_animator.animation_definitions.fade_in_window_1_corner_glow[3].update", function (func, ui_scenegraph, scenegraph_definition, widgets, local_progress, params)
+-- Copies and modifies reroll page animations to prevent locked traits from being un-highlighted
+function mod.setup_animations()
+
+	local animation_definitions = mod.trait_reroll_page.ui_animator.animation_definitions
+
+	animation_definitions[mod.animation_name_fade_in] = table.create_copy(animation_definitions[mod.animation_name_fade_in], animation_definitions.fade_in_window_1_corner_glow)
+	animation_definitions[mod.animation_name_fade_out] = table.create_copy(animation_definitions[mod.animation_name_fade_out], animation_definitions.fade_out_window_1_corner_glow)
+
+	animation_definitions[mod.animation_name_fade_in][3].update = function (ui_scenegraph, scenegraph_definition, widgets, local_progress, params)
 		local alpha = local_progress*255
-
 		for i = 1, 4, 1 do
 			local widget_name = "trait_button_" .. i
 			local widget = widgets[widget_name]
@@ -82,11 +93,10 @@ function mod.hook_animations()
 				end
 			end
 		end
-	end)
+	end
 
-	Mods.hook.set(mod_name, path_to_page .. ".ui_animator.animation_definitions.fade_out_window_1_corner_glow[3].update", function (func, ui_scenegraph, scenegraph_definition, widgets, local_progress, params)
+	animation_definitions[mod.animation_name_fade_out][3].update = function (ui_scenegraph, scenegraph_definition, widgets, local_progress, params)
 		local alpha = (local_progress - 1)*255
-
 		for i = 1, 4, 1 do
 			local widget_name = "trait_button_" .. i
 			local widget = widgets[widget_name]
@@ -99,7 +109,7 @@ function mod.hook_animations()
 				end
 			end
 		end
-	end)
+	end
 end
 
 -- Returns true if table of traits has both trait1 and trait2
@@ -122,11 +132,11 @@ end
 -- Returns true if the item is exotic or rare and there's at least two unlocked traits
 function mod.can_lock_traits()
 	return
-		mod.trait_reroll_page.active_item_data and
-		mod.trait_reroll_page.active_item_data.rarity and
-		(mod.trait_reroll_page.active_item_data.rarity == "exotic" or mod.trait_reroll_page.active_item_data.rarity == "rare") and
-		mod.trait_reroll_page.active_item_data.traits and
-		#mod.trait_reroll_page.active_item_data.traits - 1 > #mod.locked_traits
+	mod.trait_reroll_page.active_item_data and
+			mod.trait_reroll_page.active_item_data.rarity and
+			(mod.trait_reroll_page.active_item_data.rarity == "exotic" or mod.trait_reroll_page.active_item_data.rarity == "rare") and
+			mod.trait_reroll_page.active_item_data.traits and
+			#mod.trait_reroll_page.active_item_data.traits - 1 > #mod.locked_traits
 end
 
 -- Locks currently selected trait
@@ -148,7 +158,7 @@ function mod.unlock_trait()
 	local trait_name = mod.trait_reroll_page.selected_trait_name
 	local trait_index = mod.trait_reroll_page.selected_trait_index
 	if trait_name and table.has_item(mod.locked_traits, trait_name) then
-		table.remove(mod.locked_traits, table.index_of(mod.locked_traits, trait_name))
+		table.remove(mod.locked_traits, mod.table_index_of(mod.locked_traits, trait_name))
 	end
 	if trait_index ~= nil then
 		mod.highlight_trait(trait_index, 0)
@@ -250,13 +260,14 @@ end
 
 -- Returns increased reroll cost based on locked traits
 function mod.modify_reroll_cost(cost)
-	local new_cost = cost
-	if #mod.locked_traits > 0 then
-		for i=1, #mod.locked_traits do
-			new_cost = new_cost + cost*i
-		end
+	local num_locked = #mod.locked_traits
+	if num_locked == 0 then
+		return cost
+	elseif num_locked == 1 then
+		return cost*2
+	else
+		return cost*6
 	end
-	return new_cost
 end
 
 -- Adding trait filters when rerolling
@@ -333,7 +344,7 @@ end)
 Mods.hook.set(mod_name, "AltarTraitRollUI.add_item", function (func, self, ...)
 	--EchoConsole("add_item")
 	if not mod.trait_reroll_page then
-		mod.trait_reroll_page = mod.setup_reroll_page()
+		mod.setup_reroll_page()
 	end
 	mod.reset(false)
 	return func(self, ...)
@@ -343,7 +354,7 @@ end)
 Mods.hook.set(mod_name, "AltarTraitRollUI.remove_item", function (func, self, ...)
 	--EchoConsole("remove_item")
 	if not mod.trait_reroll_page then
-		mod.trait_reroll_page = mod.setup_reroll_page()
+		mod.setup_reroll_page()
 	end
 	mod.reset(true)
 	return func(self, ...)
@@ -397,12 +408,64 @@ Mods.hook.set(mod_name, "AltarTraitRollUI._get_upgrade_cost", function (func, se
 		local reroll_traits = AltarSettings.reroll_traits
 		local rarity_settings = reroll_traits[rarity]
 		local token_type = rarity_settings.token_type
-		local traits_cost = mod.modify_reroll_cost(rarity_settings.cost * 2)
+		local traits_cost = mod.modify_reroll_cost(rarity_settings.cost)
 		local texture = rarity_settings.token_texture
 
 		return token_type, traits_cost, texture
 	end
 end)
 
+-- Play modified animations instead of standard ones
+Mods.hook.set(mod_name, "AltarTraitRollUI._on_preview_window_1_button_hovered", function (func, self)
+	local params = {
+		wwise_world = self.wwise_world
+	}
+
+	if self.window_2_corner_glow_anim_id then
+		self.window_2_corner_glow_anim_id = self.ui_animator:start_animation("fade_out_window_2_corner_glow", self.widgets_by_name, self.scenegraph_definition, params)
+	end
+
+	self.window_1_corner_glow_anim_id = self.ui_animator:start_animation(mod.animation_name_fade_in, self.widgets_by_name, self.scenegraph_definition, params)
+	self.trait_window_selection_index = 1
+	local preview_window_1_button = self.widgets_by_name.preview_window_1_button
+	preview_window_1_button.content.disable_input_icon = false
+
+	return
+end)
+Mods.hook.set(mod_name, "AltarTraitRollUI._on_preview_window_2_button_hovered", function (func, self)
+	local params = {
+		wwise_world = self.wwise_world
+	}
+
+	if self.window_1_corner_glow_anim_id then
+		self.window_1_corner_glow_anim_id = self.ui_animator:start_animation(mod.animation_name_fade_out, self.widgets_by_name, self.scenegraph_definition, params)
+	end
+
+	self.window_2_corner_glow_anim_id = self.ui_animator:start_animation("fade_in_window_2_corner_glow", self.widgets_by_name, self.scenegraph_definition, params)
+	self.trait_window_selection_index = 2
+	local preview_window_2_button = self.widgets_by_name.preview_window_2_button
+	preview_window_2_button.content.disable_input_icon = false
+
+	return
+end)
+Mods.hook.set(mod_name, "AltarTraitRollUI._on_preview_window_1_button_hover_exit", function (func, self)
+	local params = {
+		wwise_world = self.wwise_world
+	}
+
+	if self.window_1_corner_glow_anim_id then
+		self.window_1_corner_glow_anim_id = self.ui_animator:start_animation(mod.animation_name_fade_out, self.widgets_by_name, self.scenegraph_definition, params)
+	end
+
+	if self.trait_window_selection_index == 1 then
+		self.trait_window_selection_index = nil
+	end
+
+	local preview_window_1_button = self.widgets_by_name.preview_window_1_button
+	preview_window_1_button.content.disable_input_icon = true
+
+	return
+end)
+
 -- Try getting reroll page object (works only when the mod is reloaded)
-mod.trait_reroll_page = mod.setup_reroll_page()
+mod.setup_reroll_page()
