@@ -39,6 +39,7 @@ local MOD_SETTINGS = {
 				true,
 				mode = "show",
 				options = {
+					"cb_true_solo_kill_bots",
 					"cb_true_solo_hide_frames",
 					"cb_true_solo_assassin_spawn_sound",
 					"cb_true_solo_no_hordes_when_ogre_alive",
@@ -49,6 +50,18 @@ local MOD_SETTINGS = {
 				}
 			},
 		},
+	},
+	KILL_BOTS = {
+		["save"] = "cb_true_solo_kill_bots",
+		["widget_type"] = "stepper",
+		text = "Kill Bots",
+		tooltip = "Automatically kills bots",
+		["value_type"] = "boolean",
+		["options"] = {
+			{text = "Off", value = false},
+			{text = "On", value = true},
+		},
+		["default"] = 1, -- Off
 	},
 	HIDE_OTHER_FRAMES = {
 		["save"] = "cb_true_solo_hide_frames",
@@ -215,6 +228,7 @@ Mods.hook.set(mod_name, "MatchmakingManager.update", function(func, self, ...)
 
 	local horde_size_ratio = user_setting(MOD_SETTINGS.HORDE_SIZE.save)
 	local ratio = true_solo_enabled and horde_size_ratio / 100 or 1
+	local kill_bots = user_setting(MOD_SETTINGS.KILL_BOTS.save)
 
 	-- adjust hordes when true solo mode gets toggled
 	if true_solo_enabled ~= rawget(_G, "_true_solo_mode_enabled") then
@@ -251,15 +265,18 @@ Mods.hook.set(mod_name, "MatchmakingManager.update", function(func, self, ...)
 					self.adjust_hordes_next_round_start = false
 				end
 
-				for _, player in pairs(Managers.player:bots()) do
-					local status_extension = nil
-					if player.player_unit then
-						status_extension = ScriptUnit.extension(player.player_unit, "status_system")
-					end
-					if status_extension and not status_extension.is_ready_for_assisted_respawn(status_extension) then
-						StatusUtils.set_dead_network(player.player_unit, true)
+				if kill_bots then
+					for _, player in pairs(Managers.player:bots()) do
+						local status_extension = nil
+						if player.player_unit then
+							status_extension = ScriptUnit.extension(player.player_unit, "status_system")
+						end
+						if status_extension and not status_extension.is_ready_for_assisted_respawn(status_extension) then
+							StatusUtils.set_dead_network(player.player_unit, true)
+						end
 					end
 				end
+
 			else
 				self.adjust_hordes_next_round_start = true
 			end
@@ -451,6 +468,7 @@ local function create_options()
 	Mods.option_menu:add_group("true_solo_group", "True Solo")
 	Mods.option_menu:add_item("true_solo_group", MOD_SETTINGS.ENABLED, true)
 
+	Mods.option_menu:add_item("true_solo_group", MOD_SETTINGS.KILL_BOTS)
 	Mods.option_menu:add_item("true_solo_group", MOD_SETTINGS.HIDE_OTHER_FRAMES)
 	Mods.option_menu:add_item("true_solo_group", MOD_SETTINGS.ASSASSIN_SPAWN_SOUND)
 	Mods.option_menu:add_item("true_solo_group", MOD_SETTINGS.NO_HORDES_WHEN_OGRE_ALIVE)
