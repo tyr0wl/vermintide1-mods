@@ -138,8 +138,8 @@ local MOD_SETTINGS = {
 		["widget_type"] = "slider",
 		["text"] = "Horde Size",
 		["tooltip"] =  "Horde Size\n" ..
-			"Adjust horde size. 200 = 2x",
-		["range"] = {10, 200},
+			"Adjust horde size. 300 = 3x",
+		["range"] = {10, 300},
 		["default"] = 100,
 	},
 	SKIP_CUTSCENES = {
