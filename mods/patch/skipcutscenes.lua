@@ -3,22 +3,22 @@ local mod_name = "SkipCutscenes"
 local oi = OptionsInjector
 
 SkipCutscenes = {
-	SETTINGS = {
-		ACTIVE = {
-			["save"] = "cb_skip_level_cutscenes",
-			["widget_type"] = "stepper",
-			["text"] = "Skip Level Cutscenes",
-			["tooltip"] =  "Skip Level Cutscenes\n" ..
-				"Toggle skip level cutscenes on / off.\n\n" ..
-				"Lets you skip the cutscenes at the beginning of a map by pressing [Space].",
-			["value_type"] = "boolean",
-			["options"] = {
-				{text = "Off", value = false},
-				{text = "On", value = true},
-			},
-			["default"] = 1, -- Default first option is enabled. In this case Off
-		},
-	},
+    SETTINGS = {
+        ACTIVE = {
+            ["save"] = "cb_skip_level_cutscenes",
+            ["widget_type"] = "stepper",
+            ["text"] = "Skip Level Cutscenes",
+            ["tooltip"] = "Skip Level Cutscenes\n" ..
+                    "Toggle skip level cutscenes on / off.\n\n" ..
+                    "Lets you skip the cutscenes at the beginning of a map by pressing [Space].",
+            ["value_type"] = "boolean",
+            ["options"] = {
+                { text = "Off", value = false },
+                { text = "On", value = true },
+            },
+            ["default"] = 1, -- Default first option is enabled. In this case Off
+        },
+    },
 }
 local me = SkipCutscenes
 
@@ -30,22 +30,22 @@ local save = Application.save_user_settings
 -- ##### Options ######################################################################################################
 -- ####################################################################################################################
 me.create_options = function()
-	oi.CreateStepperWidget(me.SETTINGS.ACTIVE.save, mod_name, me.SETTINGS.ACTIVE.options, me.SETTINGS.ACTIVE.default, me.SETTINGS.ACTIVE.tooltip)
+    oi.CreateStepperWidget(me.SETTINGS.ACTIVE.save, mod_name, me.SETTINGS.ACTIVE.options, me.SETTINGS.ACTIVE.default, me.SETTINGS.ACTIVE.tooltip)
 end
 
 -- ####################################################################################################################
 -- ##### Hook #########################################################################################################
 -- ####################################################################################################################
 Mods.hook.set(mod_name, "MatchmakingManager.update", function(func, ...)
-	func(...)
-	
-	if script_data ~= nil then
-		if get(me.SETTINGS.ACTIVE.save) then
-			script_data.skippable_cutscenes = true
-		else
-			script_data.skippable_cutscenes = false
-		end	
-	end
+    func(...)
+
+    if script_data ~= nil then
+        if get(me.SETTINGS.ACTIVE.save) then
+            script_data.skippable_cutscenes = true
+        else
+            script_data.skippable_cutscenes = false
+        end
+    end
 end)
 
 -- ####################################################################################################################

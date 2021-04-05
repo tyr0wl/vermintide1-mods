@@ -28,11 +28,11 @@ FashionPatrol = {
             ["save"] = "cb_fashion_patrol",
             ["widget_type"] = "stepper",
             ["text"] = "Fashion Patrol",
-            ["tooltip"] =  "Gives Stormvermin patrols white armor (client-side, host only).",
+            ["tooltip"] = "Gives Stormvermin patrols white armor (client-side, host only).",
             ["value_type"] = "boolean",
             ["options"] = {
-                {text = "Off", value = false},
-                {text = "On", value = true},
+                { text = "Off", value = false },
+                { text = "On", value = true },
             },
             ["default"] = 1, -- Default first option is enabled. In this case Off
         },
@@ -92,15 +92,15 @@ me.trigger_stormvermin_variation = function(unit)
         local Unit_set_scalar_for_material_table = Unit.set_scalar_for_material_table
         Unit_set_scalar_for_material_table(unit, materials, variable_name, variable_value)
     else
-        for i=1, #meshes do
+        for i = 1, #meshes do
             local mesh = meshes[i]
             local Unit_mesh = Unit.mesh
             local current_mesh = Unit_mesh(unit, mesh)
 
-            for material_i=1, num_materials do
+            for material_i = 1, num_materials do
                 local material = materials[material_i]
                 local current_material = Mesh_material(current_mesh, material)
-                Material_set_scalar(current_material,variable_name,variable_value)
+                Material_set_scalar(current_material, variable_name, variable_value)
             end
         end
     end
@@ -112,7 +112,7 @@ end
 -- ##########################################################
 -- #################### Hooks ###############################
 
-Mods.hook.set(mod_name, "UnitSpawner.spawn_local_unit_with_extensions", function (func, self, unit_name, unit_template_name, extension_init_data, ...)
+Mods.hook.set(mod_name, "UnitSpawner.spawn_local_unit_with_extensions", function(func, self, unit_name, unit_template_name, extension_init_data, ...)
     local unit, unit_template_name = func(self, unit_name, unit_template_name, extension_init_data, ...)
 
     -- Changes here: --------------------------------
